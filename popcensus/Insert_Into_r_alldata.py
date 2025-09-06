@@ -11,7 +11,7 @@ pd.set_option("display.max_columns", None)
 pd.set_option("display.width", 200)
 
 # --------------------------- แก้ array เป็นรหัสจังหวัด ---------------------------
-PROVINCE_CODES_TO_RUN = ["54", "55", "56", "57", "58"]
+PROVINCE_CODES_TO_RUN = ["82", "84", "85", "86"]
 
 # --------------------------- แก้ ที่อยู่ไฟล์ report.xlsx ---------------------------
 EXCEL_REPORT_PATH = "C:/Users/NSO/Desktop/pop_run_data/popcensus/report.csv"

@@ -18,7 +18,7 @@ ORANGE = '\033[38;2;255;165;0m'
 PINK = '\033[38;2;255;105;180m'
 
 # --------------------------- แก้ array เป็นรหัสจังหวัด ---------------------------
-PROVINCE_CODES_TO_RUN = ["61", "62", "63", "64", "65", "66", "67"]
+PROVINCE_CODES_TO_RUN = ["80", "84", "86"]
 
 # RegCode = '5'
 # ProvCode = '41'
@@ -27,12 +27,16 @@ report_data = []
 report_columns = [
     'ProvCode', 'time_begin', 'time_end', 'time_difference', 'Shape of df', 'Shape of df_final_combined', 'Shape of df_filtered'
 ]
-report_filename = 'C:/Users/NSO/Desktop/pop_run_data/duplicate_check/report.csv'
+
+# --------------------------- แก้ที่อยู่ของ report.csv ---------------------------
+report_filename = 'C:/Users/NSO\Desktop/pop_run_data/duplicate_check/report.csv'
 
 sql_conn = None
 cursor = None
 try:
-    sql_conn = pyodbc.connect('DRIVER={SQL Server};SERVER=172.19.3.71;DATABASE=pop6768;UID=danny;PWD=P@ssw0rd12#$')
+
+    # ------------------------------------ ที่ ip server ----------------------------------------
+    sql_conn = pyodbc.connect('DRIVER={SQL Server};SERVER=192.168.0.204;DATABASE=pop6768;UID=pdan;PWD=P@ssw0rd12#$')
     print("Connection successful")
     cursor = sql_conn.cursor()
 
@@ -1237,6 +1241,8 @@ try:
                     print(f"  แก้ไข NaT ในคอลัมน์ '{col}': {initial_nat_count} รายการ")
         # --- สิ้นสุดโค้ดแก้ไข NaT ---
 
+        print("กำลังแปลงค่าว่าง (pd.NA) ให้เป็น '' (Blank) ก่อนส่งเข้าฐานข้อมูล...")
+        df_filtered = df_filtered.replace({pd.NA: ''})
 
         # --- ซิงค์ข้อมูลกับฐานข้อมูล r_duplicate และ r_additional (เฉพาะการเพิ่มข้อมูล) ---
 
