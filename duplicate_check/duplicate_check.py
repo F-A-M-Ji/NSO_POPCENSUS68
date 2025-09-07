@@ -1231,6 +1231,12 @@ try:
         df_filtered = df_final[selected_columns].copy()
         print("Shape of df_filtered:", df_filtered.shape)
 
+        time_end_check_dup = datetime.datetime.now()
+        print("เวลาสิ้นสุด check dup:", time_end_check_dup)
+
+        time_difference_check_dup = time_end_check_dup - time_begin
+        print("ความต่างของเวลา:", time_difference_check_dup)
+
         # --- เพิ่มโค้ดแก้ไข NaT ตรงนี้ ---
         print("กำลังตรวจสอบและแก้ไขค่าวันที่/เวลา (NaT) ก่อนส่งเข้าฐานข้อมูล...")
         for col in df_filtered.columns:
@@ -1333,6 +1339,8 @@ try:
         single_report_df = pd.DataFrame([{
             'ProvCode': ProvCode,
             'time_begin': time_begin,
+            'time_end_check_dup': time_end_check_dup,
+            'time_difference_check_dup': time_difference_check_dup,
             'time_end': time_end,
             'time_difference': str(time_difference),
             'Shape of df': str(data.shape),

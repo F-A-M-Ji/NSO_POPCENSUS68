@@ -2,53 +2,49 @@
 
 // --- SCRIPT CONFIGURATION ---
 
-// ตั้งค่าให้สคริปต์ทำงานได้ไม่จำกัดเวลาและใช้หน่วยความจำได้เต็มที่
+// Set script to run indefinitely and use maximum available memory
 set_time_limit(0);
 ini_set('memory_limit', '-1');
 
-// เปิดการแสดงผลข้อผิดพลาดทั้งหมดเพื่อการดีบัก
+// Enable full error reporting for debugging
 error_reporting(E_ALL);
 ini_set('display_errors', 1);
 
 // --- DATABASE CONNECTION SETTINGS ---
-$serverName = "192.168.0.203"; // IP หรือ Hostname ของ SQL Server
+$serverName = "192.168.0.203"; // Your SQL Server IP or hostname
 $connectionInfo = array(
-    "Database" => "pop6768",      // ชื่อฐานข้อมูล
-    "UID" => "pdan",             // ชื่อผู้ใช้
-    "PWD" => "P@ssw0rd12#$",     // รหัสผ่าน *กรุณาตรวจสอบความถูกต้อง*
-    "CharacterSet" => "UTF-8"    // แนะนำให้ใช้เพื่อรองรับอักษรไทย
+    "Database" => "pop6768",   // Your database name
+    "UID" => "pdan",           // Your username
+    "PWD" => "P@ssw0rd12#$",    // Your password - *แก้ไขรหัสผ่านให้ถูกต้อง*
+    "CharacterSet" => "UTF-8"  // Recommended for handling Thai characters
 );
 
 // --- PROVINCE CODES ---
-// รายการรหัสจังหวัดที่ต้องการประมวลผล
+// An array containing all province codes to be processed.
 $provinceCodes = [
-    '31', '33', '35', '36', '37'
-    // สามารถเพิ่มรหัสจังหวัดอื่นๆ ได้ที่นี่
+    '39', '41'
 ];
 
-// --- BATCH PROCESSING CONFIGURATION ---
-define('BATCH_SIZE', 400); // จำนวนรายการที่จะอัปเดตในหนึ่งชุด (ปรับค่าได้ตามความเหมาะสม)
-
-// --- LOGGING CONFIGURATION ---
-$logFileName = 'update_log.csv'; // ชื่อไฟล์สำหรับบันทึกผล
 
 /**
- * ฟังก์ชันสำหรับเข้ารหัสและถอดรหัสข้อความด้วย AES-256-CBC
- * @param string $action 'encrypt' หรือ 'decrypt'
- * @param string|null $string ข้อความที่ต้องการประมวลผล
- * @return string|false ผลลัพธ์ หรือ false หากล้มเหลว
+ * Encrypts or decrypts a string using AES-256-CBC.
+ *
+ * @param string $action The action to perform: 'encrypt' or 'decrypt'.
+ * @param string|null $string The string to process.
+ * @return string|false The processed string, an empty string if input is null, or false on failure.
  */
 function encrypt_decrypt($action, $string)
 {
     if ($string === null || $string === '') {
         return "";
     }
-
+    
     $output = false;
     $encrypt_method = "AES-256-CBC";
     $secret_key = 'Pp9xeukV5j3pp89w';
     $secret_iv = 'T5eUeG3MsJkhr6sc';
 
+    // Create the key and initialization vector
     $key = hash('sha256', $secret_key);
     $iv = substr(hash('sha256', $secret_iv), 0, 16);
 
@@ -56,75 +52,19 @@ function encrypt_decrypt($action, $string)
         $output = openssl_encrypt($string, $encrypt_method, $key, 0, $iv);
         $output = base64_encode($output);
     } else if ($action == 'decrypt') {
+        // Suppress warnings from openssl_decrypt for invalid base64 strings
         $decoded_string = @base64_decode($string, true);
         if ($decoded_string === false) {
-            return false; // ไม่ใช่ base64 string ที่ถูกต้อง
+            return false; // Not a valid base64 string
         }
         $output = openssl_decrypt($decoded_string, $encrypt_method, $key, 0, $iv);
     }
     return $output;
 }
 
-/**
- * ประมวลผลข้อมูลเป็นชุดด้วยคำสั่ง UPDATE...CASE เพียงคำสั่งเดียว
- * @param resource $conn การเชื่อมต่อฐานข้อมูล
- * @param array $batchData ข้อมูลที่ต้องการอัปเดต
- * @return int จำนวนแถวที่อัปเดตสำเร็จ
- */
-function process_batch($conn, &$batchData)
-{
-    if (empty($batchData)) {
-        return 0;
-    }
-
-    $params = [];
-    $idenList = [];
-    $firstNameCase = "";
-    $lastNameCase = "";
-
-    foreach ($batchData as $record) {
-        $idenList[] = $record['iden'];
-        // สร้างส่วนของ CASE statement และเตรียม parameters
-        $firstNameCase .= "WHEN ? THEN ? ";
-        $lastNameCase  .= "WHEN ? THEN ? ";
-        array_push($params, $record['iden'], $record['firstName'], $record['iden'], $record['lastName']);
-    }
-
-    // สร้าง SQL UPDATE แบบไดนามิก
-    $inClause = implode(',', array_fill(0, count($idenList), '?'));
-    $sql = "UPDATE r_alldata SET
-                FirstName_D = CASE IDEN {$firstNameCase} END,
-                LastName_D = CASE IDEN {$lastNameCase} END
-            WHERE IDEN IN ({$inClause})";
-
-    // เพิ่ม IDENs สำหรับ IN clause เข้าไปใน parameters
-    $params = array_merge($params, $idenList);
-
-    $stmt = sqlsrv_query($conn, $sql, $params);
-
-    if ($stmt === false) {
-        echo "Error executing batch update: \n";
-        print_r(sqlsrv_errors(), true);
-        return 0;
-    }
-
-    $rowsAffected = sqlsrv_rows_affected($stmt);
-    sqlsrv_free_stmt($stmt);
-    $batchData = []; // เคลียร์ข้อมูลในชุดเพื่อรอรับชุดต่อไป
-
-    return $rowsAffected > 0 ? $rowsAffected : 0;
-}
-
-
 // --- MAIN SCRIPT EXECUTION ---
 
-// 1. เริ่มต้นสร้างไฟล์ Log
-$logFile = fopen($logFileName, 'w');
-// เขียนหัวข้อของไฟล์ CSV
-fputcsv($logFile, ['Province Code', 'Total Processed', 'Successfully Updated', 'Failed/Skipped', 'Timestamp']);
-
-
-// 2. เชื่อมต่อฐานข้อมูล
+// 1. Establish database connection
 echo "Connecting to SQL Server...\n";
 $conn = sqlsrv_connect($serverName, $connectionInfo);
 
@@ -132,13 +72,10 @@ if ($conn) {
     echo "Connection established successfully.\n\n";
 } else {
     echo "Connection could not be established.\n";
-    $error_message = sqlsrv_errors();
-    // เขียนข้อผิดพลาดลงไฟล์ log
-    fputcsv($logFile, ['CONNECTION_ERROR', 0, 0, 0, date('Y-m-d H:i:s')]);
-    die(print_r($error_message, true));
+    die(print_r(sqlsrv_errors(), true));
 }
 
-// 3. วนลูปประมวลผลทีละจังหวัด
+// 2. Loop through each province code
 $totalProvinces = count($provinceCodes);
 $provinceCounter = 0;
 
@@ -148,80 +85,84 @@ foreach ($provinceCodes as $provCode) {
     echo "Processing Province Code: {$provCode} ({$provinceCounter} of {$totalProvinces})\n";
     echo "============================================================\n";
 
-    // ดึงข้อมูลของจังหวัดปัจจุบัน
+    // 3. Select records for the current province
+    // We select the primary key (IDEN) to perform the UPDATE later.
     $sqlSelect = "SELECT IDEN, FirstName, LastName FROM r_alldata WHERE ProvCode = ?";
     $paramsSelect = array($provCode);
-    $options = array("Scrollable" => SQLSRV_CURSOR_KEYSET);
+    $options = array("Scrollable" => SQLSRV_CURSOR_KEYSET); // To get row count
 
     $stmtSelect = sqlsrv_query($conn, $sqlSelect, $paramsSelect, $options);
 
     if ($stmtSelect === false) {
         echo "Error executing SELECT query for province {$provCode}: \n";
-        print_r(sqlsrv_errors(), true);
-        continue; // ข้ามไปจังหวัดถัดไป
+        die(print_r(sqlsrv_errors(), true));
     }
 
     $rowCount = sqlsrv_num_rows($stmtSelect);
     if ($rowCount == 0) {
         echo "No records found for province {$provCode}. Skipping.\n\n";
-        fputcsv($logFile, [$provCode, 0, 0, 0, date('Y-m-d H:i:s')]); // บันทึกลง log ว่าไม่พบข้อมูล
         continue;
     }
 
-    echo "Found {$rowCount} records. Starting decryption and batch update process...\n";
+    echo "Found {$rowCount} records. Starting decryption and update process...\n";
 
-    $totalUpdatedCount = 0;
+    $updatedCount = 0;
     $failedCount = 0;
     $processedCount = 0;
-    $batchData = [];
-
-    // วนลูปดึงข้อมูลทีละแถวเพื่อเตรียมจัดกลุ่ม
+    
+    // 4. Fetch each row and process it
     while ($row = sqlsrv_fetch_array($stmtSelect, SQLSRV_FETCH_ASSOC)) {
         $processedCount++;
+        $iden = $row['IDEN'];
+        $encryptedFirstName = $row['FirstName'];
+        $encryptedLastName = $row['LastName'];
         
-        // ถอดรหัสข้อมูล
-        $decryptedFirstName = encrypt_decrypt('decrypt', $row['FirstName']);
-        $decryptedLastName = encrypt_decrypt('decrypt', $row['LastName']);
+        // Decrypt data
+        $decryptedFirstName = encrypt_decrypt('decrypt', $encryptedFirstName);
+        $decryptedLastName = encrypt_decrypt('decrypt', $encryptedLastName);
 
+        // 5. CRITICAL CHECK: Update only if both fields are successfully decrypted
+        // The !empty() check handles false, null, and empty strings ('')
         if (!empty($decryptedFirstName) && !empty($decryptedLastName)) {
-            // หากถอดรหัสสำเร็จ เพิ่มข้อมูลลงในชุดรออัปเดต
-            $batchData[] = [
-                'iden' => $row['IDEN'],
-                'firstName' => $decryptedFirstName,
-                'lastName' => $decryptedLastName,
-            ];
+            // Both are valid, proceed with update
+            $sqlUpdate = "UPDATE r_alldata SET FirstName_D = ?, LastName_D = ? WHERE IDEN = ?";
+            $paramsUpdate = array($decryptedFirstName, $decryptedLastName, $iden);
+
+            $stmtUpdate = sqlsrv_query($conn, $sqlUpdate, $paramsUpdate);
+            if ($stmtUpdate === false) {
+                echo "Error updating record IDEN {$iden}: \n";
+                print_r(sqlsrv_errors(), true);
+                // Continue to the next record
+            } else {
+                $updatedCount++;
+                sqlsrv_free_stmt($stmtUpdate);
+            }
         } else {
+            // Decryption failed for one or both fields, skip this record.
             $failedCount++;
         }
-
-        // หากข้อมูลในชุดเต็มตามขนาดที่กำหนด หรือเป็นรายการสุดท้าย ให้ทำการอัปเดต
-        if (count($batchData) >= BATCH_SIZE || $processedCount == $rowCount) {
-            echo "Processing batch of " . count($batchData) . " records... ({$processedCount} / {$rowCount})\n";
-            $updatedInBatch = process_batch($conn, $batchData);
-            $totalUpdatedCount += $updatedInBatch;
+        
+        // Progress indicator
+        if ($processedCount % 1000 == 0) {
+            echo "Processed {$processedCount} / {$rowCount} records...\n";
         }
     }
-
-    // สรุปผลของจังหวัดปัจจุบัน
+    
     echo "\n--- Province {$provCode} Summary ---\n";
     echo "Total records processed: {$processedCount}\n";
-    echo "Successfully updated:    {$totalUpdatedCount}\n";
+    echo "Successfully updated:    {$updatedCount}\n";
     echo "Failed/Skipped records:  {$failedCount}\n";
     echo "-----------------------------------\n\n";
-    
-    // บันทึกสรุปผลลงไฟล์ CSV
-    fputcsv($logFile, [$provCode, $processedCount, $totalUpdatedCount, $failedCount, date('Y-m-d H:i:s')]);
+
+    // Free statement resource
     sqlsrv_free_stmt($stmtSelect);
 }
 
 echo "============================================================\n";
 echo "All provinces have been processed. Script finished.\n";
-echo "Log file '{$logFileName}' has been created with the summary.\n";
 echo "============================================================\n";
 
-// 4. ปิดไฟล์ Log และการเชื่อมต่อฐานข้อมูล
-fclose($logFile);
+// 6. Close the connection
 sqlsrv_close($conn);
 
 ?>
-
