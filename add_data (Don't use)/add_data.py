@@ -1,279 +1,185 @@
-# import pandas as pd
-# import numpy as np
-# import pyodbc
-
-# server = '10.0.72.110,1433'
-# database = 'pop_edit_FAM'
-# username = 'sa'
-# password = 'Ict_2568'
-
-# # สร้าง Connection String สำหรับ pyodbc
-# connection_string = (
-#     f"DRIVER={{ODBC Driver 17 for SQL Server}};"
-#     f"SERVER={server};"
-#     f"DATABASE={database};"
-#     f"UID={username};"
-#     f"PWD={password};"
-# )
-
-# # คอลัมน์ที่ต้องการให้เป็นชนิดข้อมูล string เพื่อป้องกันการตัด 0 นำหน้า
-# cols_as_str = ['RegCode', 'ProvCode', 'DistCode', 'SubDistCode', 'VilCode', 'HouseNumber']
-
-# sql_conn = None
-# try:
-#     # --- ส่วนที่ 2: เชื่อมต่อและดึงข้อมูลจากฐานข้อมูล ---
-#     print("กำลังเชื่อมต่อกับฐานข้อมูล...")
-#     sql_conn = pyodbc.connect(connection_string)
-#     print("เชื่อมต่อสำเร็จ!")
-
-#     # ดึงข้อมูลจากตาราง r_alldata_test
-#     print("กำลังดึงข้อมูลจากตาราง r_alldata_test...")
-#     query_data = "SELECT * FROM r_alldata_test"
-#     data = pd.read_sql(query_data, sql_conn)
-#     print(f"ดึงข้อมูล r_alldata_test สำเร็จ: {data.shape[0]} แถว")
-
-#     # ดึงข้อมูลจากตาราง R_alldata_cpp_test
-#     print("กำลังดึงข้อมูลจากตาราง R_alldata_cpp_test...")
-#     query_data_cdd = "SELECT * FROM R_alldata_cpp_test"
-#     data_cdd = pd.read_sql(query_data_cdd, sql_conn)
-#     print(f"ดึงข้อมูล R_alldata_cpp_test สำเร็จ: {data_cdd.shape[0]} แถว")
-
-#     # --- ส่วนที่ 3: จัดการประเภทข้อมูลให้เหมือนตอนอ่านจาก CSV ---
-#     # แปลงคอลัมน์ที่ระบุให้เป็น string เพื่อให้ตรรกะเดิมทำงานได้ถูกต้อง
-#     for col in cols_as_str:
-#         if col in data.columns:
-#             data[col] = data[col].fillna('').astype(str)
-#         if col in data_cdd.columns:
-#             data_cdd[col] = data_cdd[col].fillna('').astype(str)
-
-#     cols_to_zfill = {
-#         'RegCode': 1,
-#         'ProvCode': 2,
-#         'DistCode': 2,
-#         'SubDistCode': 2,
-#         'VilCode': 2
-#     }
-
-#     # จัดการทุกคอลัมน์ตามที่ระบุ
-#     for col, width in cols_to_zfill.items():
-#         if col in data.columns:
-#             data[col] = data[col].apply(
-#                 lambda x: '' if pd.isna(x) or str(x).strip() == '' else str(int(float(str(x).strip()))).zfill(width)
-#             )
-
-#     for col, width in cols_to_zfill.items():
-#         if col in data.columns:
-#             data_cdd[col] = data_cdd[col].apply(
-#                 lambda x: '' if pd.isna(x) or str(x).strip() == '' else str(int(float(str(x).strip()))).zfill(width)
-#             )
-
-#     # จัดการ HouseNumber ให้เป็น string อย่างเดียว
-#     if 'HouseNumber' in data.columns:
-#         data['HouseNumber'] = data['HouseNumber'].fillna('').astype(str).str.strip()
-
-#     if 'HouseNumber' in data.columns:
-#         data_cdd['HouseNumber'] = data_cdd['HouseNumber'].fillna('').astype(str).str.strip()
-
-
-#     data['Household_No_new'] = data['Household_No']
-#     mask_blank = data['Household_No'].isna() | (data['Household_No'].astype(str).str.strip() == '')
-
-#     # ตรวจสอบว่ามีแถวที่ต้องเติมค่าหรือไม่
-#     if mask_blank.sum() > 0:
-#         data.loc[mask_blank, 'Household_No_new'] = list(range(1, mask_blank.sum() + 1))
-
-#     data = data.sort_values(by=['NsoBuilding_No','Building_No','RegCode', 'ProvCode', 'DistCode', 'SubDistCode', 'AreaCode','MunTaoCode','VilCode',
-#                                 'EA_Code_15', 'Household_No','Household_No_new', 'HouseNumber','RoomNumber','HouseholdMemberNumber'], ascending=True).reset_index(drop=True)
-
-#     data_cdd = data_cdd.sort_values(by=['RegCode','ProvCode','DistCode', 'SubDistCode', 'VilCode', 'HouseNumber', 'Household_No','Population_No'], ascending=True).reset_index(drop=True)
-    
-#     df = data.copy().reset_index(drop=True)
-#     df_cdd = data_cdd.copy().reset_index(drop=True)
-
-#     key_columns_df = ['RegCode','ProvCode','DistCode','SubDistCode','VilCode','HouseNumber']
-#     df['key_HH_df'] = df[key_columns_df].astype(str).agg('|'.join, axis=1)
-
-#     key_columns_df_cdd = ['RegCode','ProvCode','DistCode','SubDistCode','VilCode','HouseNumber']
-#     df_cdd['key_HH_df_cdd'] = df_cdd[key_columns_df_cdd].astype(str).agg('|'.join, axis=1)
-
-#     df_HH = df.groupby('Household_No_new')[['key_HH_df']].first().reset_index()
-#     df_cdd_HH = df_cdd.groupby('Household_No')[['key_HH_df_cdd']].first().reset_index()
-
-#     df_cdd_Add = df_cdd_HH[~df_cdd_HH['key_HH_df_cdd'].isin(df_HH['key_HH_df'])]
-
-
-#     merged_df = pd.merge(df_cdd, df_cdd_Add[['Household_No']], on='Household_No', how='left', indicator=True)
-#     df_cdd['Merge_Flag'] = (merged_df['_merge'] == 'both').astype(int).reset_index(drop=True)
-#     df_cdd = df_cdd[df_cdd['Merge_Flag'] == 1]
-#     df_cdd_final = df_cdd.copy().reset_index(drop=True)
-
-#     df_cdd_final.drop(columns=['key_HH_df_cdd','Merge_Flag'], inplace=True)
-#     df.drop(columns=['Household_No_new','key_HH_df'], inplace=True)
-
-
-#     df_cdd_final['DataSources'] = 4
-
-
-#     df_final_2 = pd.concat([df, df_cdd_final], axis=0, ignore_index=True)
-#     df_final_2['HouseNumber'] = df_final_2['HouseNumber'].apply(lambda x: f'="{x}"')
-
-#     # ชื่อตารางใหม่ที่คุณต้องการสร้างในฐานข้อมูล
-#     new_table_name = 'r_alldata_final_result' 
-
-#     print(f"กำลังบันทึกผลลัพธ์ลงตารางใหม่ '{new_table_name}' ในฐานข้อมูล...")
-
-#     # ใช้ .to_sql เพื่อส่งข้อมูลจาก DataFrame ไปยัง SQL Server
-#     df_final_2.to_sql(
-#         name=new_table_name, 
-#         con=sql_conn, 
-#         if_exists='replace', # 'replace' คือลบตารางเก่า (ถ้ามี) แล้วสร้างใหม่, 'append' คือต่อท้าย, 'fail' คือ error ถ้ามีตารางอยู่แล้ว
-#         index=False, # ไม่ต้องเอา index ของ DataFrame ไปสร้างเป็นคอลัมน์ในตาราง
-#         chunksize=1000 # ช่วยจัดการข้อมูลขนาดใหญ่โดยการส่งข้อมูลทีละ 1000 แถว
-#     )
-
-#     print("บันทึกข้อมูลลงตารางในฐานข้อมูลสำเร็จ!")
-
-# except pyodbc.Error as ex:
-#     sqlstate = ex.args[0]
-#     print(f"เกิดข้อผิดพลาดในการเชื่อมต่อฐานข้อมูล: {sqlstate}")
-#     print(ex)
-# except Exception as e:
-#     print(f"เกิดข้อผิดพลาดที่ไม่คาดคิด: {e}")
-# finally:
-#     if sql_conn:
-#         sql_conn.close()
-#         print("ปิดการเชื่อมต่อฐานข้อมูลแล้ว")
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 import pandas as pd
 import numpy as np
-# ไม่จำเป็นต้อง import pyodbc โดยตรงแล้ว SQLAlchemy จะจัดการให้
 from sqlalchemy import create_engine
 import urllib
+import time
+from datetime import datetime
 
-# --- 1. ตั้งค่าการเชื่อมต่อ (เหมือนเดิม) ---
 server = '10.0.72.110,1433'
 database = 'pop_edit_FAM'
 username = 'sa'
 password = 'Ict_2568'
 
-# --- 2. สร้าง Connection Engine ด้วย SQLAlchemy (แก้ไข) ---
-# จัดการกับอักขระพิเศษในรหัสผ่าน (ถ้ามี)
-quoted_password = urllib.parse.quote_plus(password)
+provinces_to_process = [
+    '18'
+]
 
-# สร้าง Connection URL สำหรับ SQLAlchemy
-connection_url = (
-    f"mssql+pyodbc://{username}:{quoted_password}@{server}/{database}"
-    f"?driver=ODBC+Driver+17+for+SQL+Server"
-)
-
-# สร้าง Engine ซึ่งเป็นตัวกลางในการเชื่อมต่อ
-engine = create_engine(connection_url)
-
-print("สร้าง Engine สำหรับเชื่อมต่อฐานข้อมูลสำเร็จ!")
+target_table = 'r_alldata_test2'
+report_filename = 'report.csv'
+report_log = []
 
 try:
-    # --- 3. ดึงข้อมูลโดยใช้ engine ---
-    print("กำลังดึงข้อมูลจากตาราง r_alldata_test...")
-    # แนะนำ: เพื่อความเร็วสูงสุด ควรเลือกเฉพาะคอลัมน์ที่จำเป็นแทน SELECT *
-    query_data = "SELECT * FROM r_alldata_test"
-    data = pd.read_sql(query_data, engine)
-    print(f"ดึงข้อมูล r_alldata_test สำเร็จ: {data.shape[0]} แถว")
-
-    print("กำลังดึงข้อมูลจากตาราง R_alldata_cpp_test...")
-    query_data_cdd = "SELECT * FROM R_alldata_cpp_test"
-    data_cdd = pd.read_sql(query_data_cdd, engine)
-    print(f"ดึงข้อมูล R_alldata_cpp_test สำเร็จ: {data_cdd.shape[0]} แถว")
-
-    # --- 4. จัดการประเภทข้อมูล ---
-    cols_as_str = ['RegCode', 'ProvCode', 'DistCode', 'SubDistCode', 'VilCode', 'HouseNumber']
-    for col in cols_as_str:
-        if col in data.columns:
-            data[col] = data[col].fillna('').astype(str)
-        if col in data_cdd.columns:
-            data_cdd[col] = data_cdd[col].fillna('').astype(str)
-
-    cols_to_zfill = {
-        'RegCode': 1, 'ProvCode': 2, 'DistCode': 2, 'SubDistCode': 2, 'VilCode': 2
-    }
-
-    # --- 5. ปรับปรุงความเร็ว: zfill แบบ Vectorized (แก้ไข) ---
-    for col, width in cols_to_zfill.items():
-        if col in data.columns:
-            data[col] = pd.to_numeric(data[col], errors='coerce').fillna(0).astype(int).astype(str).str.zfill(width)
-        # --- แก้ไข Bug: เปลี่ยนเป็น data_cdd.columns ---
-        if col in data_cdd.columns:
-            data_cdd[col] = pd.to_numeric(data_cdd[col], errors='coerce').fillna(0).astype(int).astype(str).str.zfill(width)
-
-    # จัดการ HouseNumber (ส่วนนี้ยังคงเดิม)
-    if 'HouseNumber' in data.columns:
-        data['HouseNumber'] = data['HouseNumber'].fillna('').astype(str).str.strip()
-    if 'HouseNumber' in data_cdd.columns:
-        data_cdd['HouseNumber'] = data_cdd['HouseNumber'].fillna('').astype(str).str.strip()
-
-    # --- ส่วนของการประมวลผลข้อมูล (Logic) เหมือนเดิม ---
-    data['Household_No_new'] = data['Household_No']
-    mask_blank = data['Household_No'].isna() | (data['Household_No'].astype(str).str.strip() == '')
-    if mask_blank.sum() > 0:
-        data.loc[mask_blank, 'Household_No_new'] = list(range(1, mask_blank.sum() + 1))
-
-    data = data.sort_values(by=['NsoBuilding_No','Building_No','RegCode', 'ProvCode', 'DistCode', 'SubDistCode', 'AreaCode','MunTaoCode','VilCode','EA_Code_15', 'Household_No','Household_No_new', 'HouseNumber','RoomNumber','HouseholdMemberNumber'], ascending=True).reset_index(drop=True)
-    data_cdd = data_cdd.sort_values(by=['RegCode','ProvCode','DistCode', 'SubDistCode', 'VilCode', 'HouseNumber', 'Household_No','Population_No'], ascending=True).reset_index(drop=True)
-
-    df = data.copy().reset_index(drop=True)
-    df_cdd = data_cdd.copy().reset_index(drop=True)
-
-    key_columns = ['RegCode','ProvCode','DistCode','SubDistCode','VilCode','HouseNumber']
-    
-    # ปรับปรุงความเร็ว: สร้าง key แบบ Vectorized
-    df['key_HH_df'] = df[key_columns].astype(str).agg('|'.join, axis=1)
-    df_cdd['key_HH_df_cdd'] = df_cdd[key_columns].astype(str).agg('|'.join, axis=1)
-
-    df_HH = df.groupby('Household_No_new')[['key_HH_df']].first().reset_index()
-    df_cdd_HH = df_cdd.groupby('Household_No')[['key_HH_df_cdd']].first().reset_index()
-    df_cdd_Add = df_cdd_HH[~df_cdd_HH['key_HH_df_cdd'].isin(df_HH['key_HH_df'])]
-
-    merged_df = pd.merge(df_cdd, df_cdd_Add[['Household_No']], on='Household_No', how='left', indicator=True)
-    df_cdd['Merge_Flag'] = (merged_df['_merge'] == 'both').astype(int).reset_index(drop=True)
-    df_cdd = df_cdd[df_cdd['Merge_Flag'] == 1]
-    df_cdd_final = df_cdd.copy().reset_index(drop=True)
-
-    df_cdd_final.drop(columns=['key_HH_df_cdd','Merge_Flag'], inplace=True)
-    df.drop(columns=['Household_No_new','key_HH_df'], inplace=True)
-    df_cdd_final['DataSources'] = 4
-    
-    df_final_2 = pd.concat([df, df_cdd_final], axis=0, ignore_index=True)
-    
-    # --- 6. ลบโค้ดที่ไม่จำเป็น (แก้ไข) ---
-    # บรรทัดนี้ไม่จำเป็นสำหรับการบันทึกลง DB
-    # df_final_2['HouseNumber'] = df_final_2['HouseNumber'].apply(lambda x: f'="{x}"')
-
-    # --- 7. บันทึกข้อมูลลง DB โดยใช้ engine ---
-    new_table_name = 'r_alldata_final_result'
-    print(f"กำลังบันทึกผลลัพธ์ลงตารางใหม่ '{new_table_name}' ในฐานข้อมูล...")
-    df_final_2.to_sql(
-        name=new_table_name,
-        con=engine,
-        if_exists='replace',
-        index=False,
-        chunksize=10000 # เพิ่ม chunksize เพื่อจัดการข้อมูลขนาดใหญ่
+    print(f"\n{'='*70}")
+    print(f"\n{'='*10} เริ่มการทำงาน {'='*10}")
+    print(f"\n{'='*70}")
+    print("กำลังสร้างการเชื่อมต่อกับฐานข้อมูล...")
+    quoted_password = urllib.parse.quote_plus(password)
+    connection_url = (
+        f"mssql+pyodbc://{username}:{quoted_password}@{server}/{database}"
+        f"?driver=ODBC+Driver+17+for+SQL+Server"
     )
-    print("บันทึกข้อมูลลงตารางในฐานข้อมูลสำเร็จ!")
+    engine = create_engine(connection_url, fast_executemany=True)
+    print("สร้าง Engine สำหรับเชื่อมต่อฐานข้อมูลสำเร็จ (โหมด fast_executemany' ถูกเปิดใช้งาน)!")
+
+    print(f"กำลังดึง IDEN ที่มีอยู่ทั้งหมดจากตาราง '{target_table}' เพื่อตรวจสอบความซ้ำซ้อน...")
+    all_existing_idens_query = f"SELECT IDEN FROM {target_table} WHERE IDEN IS NOT NULL"
+    idens_df = pd.read_sql(all_existing_idens_query, engine)
+    existing_idens = set(idens_df['IDEN'])
+    print(f"พบ IDEN ที่มีอยู่แล้ว {len(existing_idens)} รายการ")
+    
+    total_new_rows_all_provinces = 0
+
+    for prov_code in provinces_to_process:
+        start_time = datetime.now() 
+        print(f"\n{'='*30} เริ่มกระบวนการสำหรับจังหวัด: {prov_code} {'='*30}")
+        print(f"\nเวลาเริ่มต้น: '{start_time}'")
+
+        print(f"[{prov_code}] กำลังดึงข้อมูลจากตาราง {target_table}...")
+        query_data = f"SELECT * FROM {target_table} WHERE ProvCode = '{prov_code}'"
+        data = pd.read_sql(query_data, engine)
+        original_row_count = len(data)
+        
+        print(f"[{prov_code}] กำลังดึงข้อมูลจากตาราง R_alldata_cpp_test...")
+        query_data_cdd = f"SELECT * FROM R_alldata_cpp_test WHERE ProvCode = '{prov_code}'"
+        data_cdd = pd.read_sql(query_data_cdd, engine)
+
+        if data_cdd.empty:
+            print(f"[{prov_code}] ไม่พบข้อมูลใน R_alldata_cpp_test สำหรับจังหวัดนี้ ข้ามไปจังหวัดถัดไป...")
+            continue
+        if data.empty:
+            print(f"[{prov_code}] ไม่พบข้อมูลตั้งต้นใน {target_table} สำหรับจังหวัดนี้ จะทำการเพิ่มข้อมูลใหม่ทั้งหมด")
+
+        cols_as_str = ['RegCode', 'ProvCode', 'DistCode', 'SubDistCode', 'VilCode', 'HouseNumber']
+        for col in cols_as_str:
+            if col in data.columns: data[col] = data[col].fillna('').astype(str)
+            if col in data_cdd.columns: data_cdd[col] = data_cdd[col].fillna('').astype(str)
+        
+        cols_to_zfill = {'RegCode': 1, 'ProvCode': 2, 'DistCode': 2, 'SubDistCode': 2, 'VilCode': 2}
+        for col, width in cols_to_zfill.items():
+            if col in data.columns: data[col] = pd.to_numeric(data[col], errors='coerce').fillna(0).astype(int).astype(str).str.zfill(width)
+            if col in data_cdd.columns: data_cdd[col] = pd.to_numeric(data_cdd[col], errors='coerce').fillna(0).astype(int).astype(str).str.zfill(width)
+
+        if 'HouseNumber' in data.columns: data['HouseNumber'] = data['HouseNumber'].fillna('').astype(str).str.strip()
+        if 'HouseNumber' in data_cdd.columns: data_cdd['HouseNumber'] = data_cdd['HouseNumber'].fillna('').astype(str).str.strip()
+
+        if not data.empty:
+            data['Household_No_new'] = data['Household_No']
+            mask_blank = data['Household_No'].isna() | (data['Household_No'].astype(str).str.strip() == '')
+            if mask_blank.sum() > 0:
+                data.loc[mask_blank, 'Household_No_new'] = list(range(1, mask_blank.sum() + 1))
+        
+        if not data.empty:
+            data = data.sort_values(by=['NsoBuilding_No','Building_No','RegCode', 'ProvCode', 'DistCode', 'SubDistCode', 'AreaCode','MunTaoCode','VilCode','EA_Code_15', 'Household_No','Household_No_new', 'HouseNumber','RoomNumber','HouseholdMemberNumber'], ascending=True).reset_index(drop=True)
+        data_cdd = data_cdd.sort_values(by=['RegCode','ProvCode','DistCode', 'SubDistCode', 'VilCode', 'HouseNumber', 'Household_No','Population_No'], ascending=True).reset_index(drop=True)
+
+        print(f"[{prov_code}] กำลังเปรียบเทียบเพื่อหาข้อมูลที่ต้องเพิ่มใหม่...")
+        df = data.copy()
+        df_cdd = data_cdd.copy()
+
+        key_columns = ['RegCode','ProvCode','DistCode','SubDistCode','VilCode','HouseNumber']
+        df_cdd['key_HH_df_cdd'] = df_cdd[key_columns].astype(str).agg('|'.join, axis=1)
+
+        if not df.empty:
+            df['key_HH_df'] = df[key_columns].astype(str).agg('|'.join, axis=1)
+            df_HH = df.groupby('Household_No_new')[['key_HH_df']].first().reset_index()
+            df_cdd_HH = df_cdd.groupby('Household_No')[['key_HH_df_cdd']].first().reset_index()
+            df_cdd_Add = df_cdd_HH[~df_cdd_HH['key_HH_df_cdd'].isin(df_HH['key_HH_df'])]
+            merged_df = pd.merge(df_cdd, df_cdd_Add[['Household_No']], on='Household_No', how='left', indicator=True)
+            df_cdd['Merge_Flag'] = (merged_df['_merge'] == 'both')
+        else:
+            df_cdd['Merge_Flag'] = True
+
+        df_cdd_final = df_cdd[df_cdd['Merge_Flag']].copy()
+        df_cdd_final.drop(columns=['key_HH_df_cdd','Merge_Flag'], inplace=True)
+        df_cdd_final.reset_index(drop=True, inplace=True)
+        df_cdd_final['DataSources'] = 4
+        new_row_count = len(df_cdd_final)
+
+        if not df_cdd_final.empty:
+            print(f"[{prov_code}] พบข้อมูลใหม่ {len(df_cdd_final)} แถวที่ต้องเพิ่มและสร้าง IDEN")
+            total_new_rows_all_provinces += len(df_cdd_final)
+
+            def generate_random_part(): return ''.join(np.random.choice(list('0123456789'), 16))
+
+            new_iden_list = []
+            generated_idens_in_this_batch = set()
+
+            for index, row in df_cdd_final.iterrows():
+                prefix = str(row['RegCode']) + str(row['ProvCode']) + str(row['DistCode']) + str(row['SubDistCode'])
+                while True:
+                    random_part = generate_random_part()
+                    new_iden = prefix + random_part
+                    if new_iden not in existing_idens and new_iden not in generated_idens_in_this_batch:
+                        break
+                new_iden_list.append(new_iden)
+                generated_idens_in_this_batch.add(new_iden)
+
+            df_cdd_final['IDEN'] = new_iden_list
+            existing_idens.update(generated_idens_in_this_batch)
+            
+            print(f"[{prov_code}] สร้าง IDEN สำหรับข้อมูลใหม่ทั้งหมดสำเร็จ!")
+            print(f"[{prov_code}] กำลังบันทึกข้อมูลใหม่ลงในตาราง '{target_table}'...")
+            df_cdd_final.to_sql(
+                name=target_table,
+                con=engine,
+                if_exists='append',
+                index=False,
+                chunksize=10000
+            )
+            print(f"[{prov_code}] เพิ่มข้อมูลใหม่ {len(df_cdd_final)} แถวลงในตาราง '{target_table}' สำเร็จ!")
+        else:
+            print(f"[{prov_code}] ไม่พบข้อมูลใหม่ที่ต้องเพิ่มสำหรับจังหวัดนี้")
+
+        end_time = datetime.now()
+        processing_time = (end_time - start_time).total_seconds()
+
+        report_log.append({
+            'ProvCode': prov_code,
+            'จำนวนข้อมูลเดิม': original_row_count,
+            'จำนวนข้อมูลใหม่': new_row_count,
+            'จำนวนรวมทั้งหมด': original_row_count + new_row_count,
+            'เวลาเริ่มต้น': start_time.strftime('%Y-%m-%d %H:%M:%S'),
+            'เวลาสิ้นสุด': end_time.strftime('%Y-%m-%d %H:%M:%S'),
+            'เวลาที่ใช้ (วินาที)': round(processing_time, 2)
+        })
+
+        print(f"\nเวลาสิ้นสุด: '{end_time}'")
+        print(f"[{prov_code}] จังหวัดนี้ใช้เวลาประมวลผล: {processing_time:.2f} วินาที")
+
+        if report_log:
+            report_df = pd.DataFrame(report_log)
+          
+            # สร้างแถวสรุปรวมจากข้อมูลทั้งหมดที่เคยประมวลผลมา
+            summary_row = {
+                'ProvCode': 'Total',
+                'จำนวนข้อมูลเดิม': report_df['จำนวนข้อมูลเดิม'].sum(),
+                'จำนวนข้อมูลใหม่': report_df['จำนวนข้อมูลใหม่'].sum(),
+                'จำนวนรวมทั้งหมด': report_df['จำนวนรวมทั้งหมด'].sum(),
+                'เวลาเริ่มต้น': '-',
+                'เวลาสิ้นสุด': '-',
+                'เวลาที่ใช้ (วินาที)': round(report_df['เวลาที่ใช้ (วินาที)'].sum(), 2)
+            }
+            report_df_with_total = pd.concat([report_df, pd.DataFrame([summary_row])], ignore_index=True)
+            
+            report_df_with_total.to_csv(report_filename, index=False, encoding='utf-8-sig')
+        
+        print(f"\nรายงานสรุปผลถูกบันทึกเรียบร้อยแล้วในไฟล์: '{report_filename}'")
+
+    print(f"\nประมวลผลเสร็จสิ้นทุกจังหวัดที่กำหนด")
 
 except Exception as e:
-    print(f"เกิดข้อผิดพลาดที่ไม่คาดคิด: {e}")
-
-print("โปรแกรมทำงานเสร็จสิ้น")
+    print(f"เกิดข้อผิดพลาดร้ายแรงที่ไม่คาดคิด: {e}")
+finally:
+    if 'engine' in locals():
+        engine.dispose()
+    print("โปรแกรมทำงานเสร็จสิ้น และปิดการเชื่อมต่อแล้ว")
