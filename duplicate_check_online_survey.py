@@ -1256,52 +1256,52 @@ try:
 
         # --- ซิงค์ข้อมูลกับฐานข้อมูล r_online_survey_chk_dup (เฉพาะการเพิ่มข้อมูล) ---
 
-        # try:
-        #     placeholders = ', '.join(['?'] * len(selected_columns))
-        #     insert_query_r_online_survey_chk_dup = f"INSERT INTO r_online_survey_chk_dup ({', '.join(selected_columns)}) VALUES ({placeholders})"
+        try:
+            placeholders = ', '.join(['?'] * len(selected_columns))
+            insert_query_r_online_survey_chk_dup = f"INSERT INTO r_online_survey_chk_dup ({', '.join(selected_columns)}) VALUES ({placeholders})"
 
-        #     total_inserted_count = 0
+            total_inserted_count = 0
 
-        #     # --- ตรวจสอบและ Insert ลง r_online_survey_chk_dup ---
-        #     print(f"\n{BLUE}กำลังตรวจสอบว่ามี ProvCode = '{ProvCode}' ในฐานข้อมูล r_online_survey_chk_dup หรือไม่...{RESET}")
-        #     query_check_r_online_survey_chk_dup_existing = f"SELECT COUNT(*) FROM r_online_survey_chk_dup WHERE ProvCode = '{ProvCode}'"
-        #     cursor.execute(query_check_r_online_survey_chk_dup_existing)
-        #     r_online_survey_chk_dup_existing_count = cursor.fetchone()[0]
+            # --- ตรวจสอบและ Insert ลง r_online_survey_chk_dup ---
+            print(f"\n{BLUE}กำลังตรวจสอบว่ามี ProvCode = '{ProvCode}' ในฐานข้อมูล r_online_survey_chk_dup หรือไม่...{RESET}")
+            query_check_r_online_survey_chk_dup_existing = f"SELECT COUNT(*) FROM r_online_survey_chk_dup WHERE ProvCode = '{ProvCode}'"
+            cursor.execute(query_check_r_online_survey_chk_dup_existing)
+            r_online_survey_chk_dup_existing_count = cursor.fetchone()[0]
 
-        #     if r_online_survey_chk_dup_existing_count == 0:
-        #         print(f"{YELLOW}ไม่พบข้อมูลสำหรับ ProvCode = '{ProvCode}' ใน r_online_survey_chk_dup จะทำการ INSERT ข้อมูลทั้งหมด{RESET}")
-        #         inserted_r_online_survey_chk_dup_count = 0
-        #         for index, row in df_filtered.iterrows():
-        #             try:
-        #                 cursor.execute(insert_query_r_online_survey_chk_dup, [row[col] for col in selected_columns])
-        #                 inserted_r_online_survey_chk_dup_count += 1
-        #             except pyodbc.Error as ex:
-        #                 sqlstate = ex.args[0]
-        #                 print(
-        #                     f"{RED}เกิดข้อผิดพลาดในการ INSERT ข้อมูลลง r_online_survey_chk_dup: {sqlstate} - {ex} - Values: {list(row)}{RESET}")
-        #                 sql_conn.rollback()
-        #                 raise
-        #         print(
-        #             f"{PINK}Inserted {inserted_r_online_survey_chk_dup_count} new records for ProvCode = '{ProvCode}' into r_online_survey_chk_dup.{RESET}")
-        #         total_inserted_count += inserted_r_online_survey_chk_dup_count
-        #     else:
-        #         print(
-        #             f"{YELLOW}พบข้อมูลสำหรับ ProvCode = '{ProvCode}' ใน r_online_survey_chk_dup แล้ว จะไม่ดำเนินการ INSERT เพิ่มเติม{RESET}")
+            if r_online_survey_chk_dup_existing_count == 0:
+                print(f"{YELLOW}ไม่พบข้อมูลสำหรับ ProvCode = '{ProvCode}' ใน r_online_survey_chk_dup จะทำการ INSERT ข้อมูลทั้งหมด{RESET}")
+                inserted_r_online_survey_chk_dup_count = 0
+                for index, row in df_filtered.iterrows():
+                    try:
+                        cursor.execute(insert_query_r_online_survey_chk_dup, [row[col] for col in selected_columns])
+                        inserted_r_online_survey_chk_dup_count += 1
+                    except pyodbc.Error as ex:
+                        sqlstate = ex.args[0]
+                        print(
+                            f"{RED}เกิดข้อผิดพลาดในการ INSERT ข้อมูลลง r_online_survey_chk_dup: {sqlstate} - {ex} - Values: {list(row)}{RESET}")
+                        sql_conn.rollback()
+                        raise
+                print(
+                    f"{PINK}Inserted {inserted_r_online_survey_chk_dup_count} new records for ProvCode = '{ProvCode}' into r_online_survey_chk_dup.{RESET}")
+                total_inserted_count += inserted_r_online_survey_chk_dup_count
+            else:
+                print(
+                    f"{YELLOW}พบข้อมูลสำหรับ ProvCode = '{ProvCode}' ใน r_online_survey_chk_dup แล้ว จะไม่ดำเนินการ INSERT เพิ่มเติม{RESET}")
 
-        #     sql_conn.commit()
-        #     print(
-        #         f"{GREEN}การดำเนินการ INSERT ข้อมูลสำหรับ ProvCode = '{ProvCode}' ใน r_online_survey_chk_dup เสร็จสมบูรณ์ (รวม {total_inserted_count} รายการใหม่){RESET}")
+            sql_conn.commit()
+            print(
+                f"{GREEN}การดำเนินการ INSERT ข้อมูลสำหรับ ProvCode = '{ProvCode}' ใน r_online_survey_chk_dup เสร็จสมบูรณ์ (รวม {total_inserted_count} รายการใหม่){RESET}")
 
-        # except pyodbc.Error as ex:
-        #     sqlstate = ex.args[0]
-        #     print(f"{RED}เกิดข้อผิดพลาดในการซิงค์ข้อมูล: {sqlstate} - {ex}{RESET}")
-        #     sql_conn.rollback()
-        #     raise
-        # except Exception as e:
-        #     print(f"{RED}เกิดข้อผิดพลาดที่ไม่คาดคิดในการซิงค์ข้อมูล: {e}{RESET}")
-        #     if sql_conn:
-        #         sql_conn.rollback()
-        #     raise
+        except pyodbc.Error as ex:
+            sqlstate = ex.args[0]
+            print(f"{RED}เกิดข้อผิดพลาดในการซิงค์ข้อมูล: {sqlstate} - {ex}{RESET}")
+            sql_conn.rollback()
+            raise
+        except Exception as e:
+            print(f"{RED}เกิดข้อผิดพลาดที่ไม่คาดคิดในการซิงค์ข้อมูล: {e}{RESET}")
+            if sql_conn:
+                sql_conn.rollback()
+            raise
 
         # --- สิ้นสุดการซิงค์ข้อมูล ---
 
