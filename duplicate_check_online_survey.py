@@ -18,7 +18,7 @@ ORANGE = '\033[38;2;255;165;0m'
 PINK = '\033[38;2;255;105;180m'
 
 # --------------------------- แก้ array เป็นรหัสจังหวัด ---------------------------
-PROVINCE_CODES_TO_RUN = ["92", "93"]
+PROVINCE_CODES_TO_RUN = ["41"]
 
 # RegCode = '5'
 # ProvCode = '41'
@@ -36,7 +36,7 @@ cursor = None
 try:
 
     # ------------------------------------ ที่ ip server ----------------------------------------
-    sql_conn = pyodbc.connect('DRIVER={SQL Server};SERVER=192.168.0.204;DATABASE=pop6768;UID=pdan;PWD=P@ssw0rd12#$')
+    sql_conn = pyodbc.connect('DRIVER={SQL Server};SERVER=192.168.0.203;DATABASE=pop6768;UID=pdan;PWD=P@ssw0rd12#$')
     print("Connection successful")
     cursor = sql_conn.cursor()
 
@@ -137,7 +137,8 @@ try:
                         'VilCode',
                         'EA_Code_15', 'HouseNumber', 'RoomNumber', 'RoadName', 'AlleyWayName', 'AlleyName', 'FirstName',
                         'LastName']
-        df1['key_HH_df1'] = df1[key_columns_df1].astype(str).agg(''.join, axis=1)
+        # df1['key_HH_df1'] = df1[key_columns_df1].astype(str).agg(''.join, axis=1)
+        df1['key_HH_df1'] = df1[key_columns_df1].fillna('').astype(str).sum(axis=1)
 
         # สร้างตัวแปรจำนวนข้อความที่ตอบในครัวเรือน ตั้งแต่ Title - Gender
         question_columns = ['Title', 'FirstName', 'LastName', 'Relationship', 'Sex', 'MonthOfBirth', 'YearOfBirth',
@@ -387,7 +388,8 @@ try:
                         'VilCode',
                         'EA_Code_15', 'HouseNumber', 'RoomNumber', 'RoadName', 'AlleyWayName', 'AlleyName', 'FirstName',
                         'LastName']
-        df2['key_HH_df2'] = df2[key_columns_df2].astype(str).agg(''.join, axis=1)
+        # df2['key_HH_df2'] = df2[key_columns_df2].astype(str).agg(''.join, axis=1)
+        df2['key_HH_df2'] = df2[key_columns_df2].fillna('').astype(str).sum(axis=1)
 
         # สร้างตัวแปรจำนวนข้อความที่ตอบในครัวเรือน ตั้งแต่ Title - Gender
         question_columns = ['Title', 'FirstName', 'LastName', 'Relationship', 'Sex', 'MonthOfBirth', 'YearOfBirth',
@@ -649,7 +651,8 @@ try:
                         'VilCode',
                         'EA_Code_15', 'HouseNumber', 'RoomNumber', 'RoadName', 'AlleyWayName', 'AlleyName', 'FirstName',
                         'LastName']
-        df3['key_HH_df3'] = df3[key_columns_df3].astype(str).agg(''.join, axis=1)
+        # df3['key_HH_df3'] = df3[key_columns_df3].astype(str).agg(''.join, axis=1)
+        df3['key_HH_df3'] = df3[key_columns_df3].fillna('').astype(str).sum(axis=1)
 
         # สร้างตัวแปรจำนวนข้อความที่ตอบในครัวเรือน ตั้งแต่ Title - Gender
         question_columns = ['Title', 'FirstName', 'LastName', 'Relationship', 'Sex', 'MonthOfBirth', 'YearOfBirth',
@@ -918,7 +921,8 @@ try:
                             'VilCode',
                             'EA_Code_15', 'HouseNumber', 'RoomNumber', 'RoadName', 'AlleyWayName', 'AlleyName',
                             'FirstName', 'LastName']
-            df4['key_HH_df4'] = df4[key_columns_df4].astype(str).agg(''.join, axis=1)
+            # df4['key_HH_df4'] = df4[key_columns_df4].astype(str).agg(''.join, axis=1)
+            df4['key_HH_df4'] = df4[key_columns_df4].fillna('').astype(str).sum(axis=1)
 
             # สร้างตัวแปรจำนวนข้อความที่ตอบในครัวเรือน ตั้งแต่ Title - Gender
             question_columns = ['Title', 'FirstName', 'LastName', 'Relationship', 'Sex', 'MonthOfBirth', 'YearOfBirth',
@@ -1252,52 +1256,52 @@ try:
 
         # --- ซิงค์ข้อมูลกับฐานข้อมูล r_online_survey_chk_dup (เฉพาะการเพิ่มข้อมูล) ---
 
-        try:
-            placeholders = ', '.join(['?'] * len(selected_columns))
-            insert_query_r_online_survey_chk_dup = f"INSERT INTO r_online_survey_chk_dup ({', '.join(selected_columns)}) VALUES ({placeholders})"
+        # try:
+        #     placeholders = ', '.join(['?'] * len(selected_columns))
+        #     insert_query_r_online_survey_chk_dup = f"INSERT INTO r_online_survey_chk_dup ({', '.join(selected_columns)}) VALUES ({placeholders})"
 
-            total_inserted_count = 0
+        #     total_inserted_count = 0
 
-            # --- ตรวจสอบและ Insert ลง r_online_survey_chk_dup ---
-            print(f"\n{BLUE}กำลังตรวจสอบว่ามี ProvCode = '{ProvCode}' ในฐานข้อมูล r_online_survey_chk_dup หรือไม่...{RESET}")
-            query_check_r_online_survey_chk_dup_existing = f"SELECT COUNT(*) FROM r_online_survey_chk_dup WHERE ProvCode = '{ProvCode}'"
-            cursor.execute(query_check_r_online_survey_chk_dup_existing)
-            r_online_survey_chk_dup_existing_count = cursor.fetchone()[0]
+        #     # --- ตรวจสอบและ Insert ลง r_online_survey_chk_dup ---
+        #     print(f"\n{BLUE}กำลังตรวจสอบว่ามี ProvCode = '{ProvCode}' ในฐานข้อมูล r_online_survey_chk_dup หรือไม่...{RESET}")
+        #     query_check_r_online_survey_chk_dup_existing = f"SELECT COUNT(*) FROM r_online_survey_chk_dup WHERE ProvCode = '{ProvCode}'"
+        #     cursor.execute(query_check_r_online_survey_chk_dup_existing)
+        #     r_online_survey_chk_dup_existing_count = cursor.fetchone()[0]
 
-            if r_online_survey_chk_dup_existing_count == 0:
-                print(f"{YELLOW}ไม่พบข้อมูลสำหรับ ProvCode = '{ProvCode}' ใน r_online_survey_chk_dup จะทำการ INSERT ข้อมูลทั้งหมด{RESET}")
-                inserted_r_online_survey_chk_dup_count = 0
-                for index, row in df_filtered.iterrows():
-                    try:
-                        cursor.execute(insert_query_r_online_survey_chk_dup, [row[col] for col in selected_columns])
-                        inserted_r_online_survey_chk_dup_count += 1
-                    except pyodbc.Error as ex:
-                        sqlstate = ex.args[0]
-                        print(
-                            f"{RED}เกิดข้อผิดพลาดในการ INSERT ข้อมูลลง r_online_survey_chk_dup: {sqlstate} - {ex} - Values: {list(row)}{RESET}")
-                        sql_conn.rollback()
-                        raise
-                print(
-                    f"{PINK}Inserted {inserted_r_online_survey_chk_dup_count} new records for ProvCode = '{ProvCode}' into r_online_survey_chk_dup.{RESET}")
-                total_inserted_count += inserted_r_online_survey_chk_dup_count
-            else:
-                print(
-                    f"{YELLOW}พบข้อมูลสำหรับ ProvCode = '{ProvCode}' ใน r_online_survey_chk_dup แล้ว จะไม่ดำเนินการ INSERT เพิ่มเติม{RESET}")
+        #     if r_online_survey_chk_dup_existing_count == 0:
+        #         print(f"{YELLOW}ไม่พบข้อมูลสำหรับ ProvCode = '{ProvCode}' ใน r_online_survey_chk_dup จะทำการ INSERT ข้อมูลทั้งหมด{RESET}")
+        #         inserted_r_online_survey_chk_dup_count = 0
+        #         for index, row in df_filtered.iterrows():
+        #             try:
+        #                 cursor.execute(insert_query_r_online_survey_chk_dup, [row[col] for col in selected_columns])
+        #                 inserted_r_online_survey_chk_dup_count += 1
+        #             except pyodbc.Error as ex:
+        #                 sqlstate = ex.args[0]
+        #                 print(
+        #                     f"{RED}เกิดข้อผิดพลาดในการ INSERT ข้อมูลลง r_online_survey_chk_dup: {sqlstate} - {ex} - Values: {list(row)}{RESET}")
+        #                 sql_conn.rollback()
+        #                 raise
+        #         print(
+        #             f"{PINK}Inserted {inserted_r_online_survey_chk_dup_count} new records for ProvCode = '{ProvCode}' into r_online_survey_chk_dup.{RESET}")
+        #         total_inserted_count += inserted_r_online_survey_chk_dup_count
+        #     else:
+        #         print(
+        #             f"{YELLOW}พบข้อมูลสำหรับ ProvCode = '{ProvCode}' ใน r_online_survey_chk_dup แล้ว จะไม่ดำเนินการ INSERT เพิ่มเติม{RESET}")
 
-            sql_conn.commit()
-            print(
-                f"{GREEN}การดำเนินการ INSERT ข้อมูลสำหรับ ProvCode = '{ProvCode}' ใน r_online_survey_chk_dup เสร็จสมบูรณ์ (รวม {total_inserted_count} รายการใหม่){RESET}")
+        #     sql_conn.commit()
+        #     print(
+        #         f"{GREEN}การดำเนินการ INSERT ข้อมูลสำหรับ ProvCode = '{ProvCode}' ใน r_online_survey_chk_dup เสร็จสมบูรณ์ (รวม {total_inserted_count} รายการใหม่){RESET}")
 
-        except pyodbc.Error as ex:
-            sqlstate = ex.args[0]
-            print(f"{RED}เกิดข้อผิดพลาดในการซิงค์ข้อมูล: {sqlstate} - {ex}{RESET}")
-            sql_conn.rollback()
-            raise
-        except Exception as e:
-            print(f"{RED}เกิดข้อผิดพลาดที่ไม่คาดคิดในการซิงค์ข้อมูล: {e}{RESET}")
-            if sql_conn:
-                sql_conn.rollback()
-            raise
+        # except pyodbc.Error as ex:
+        #     sqlstate = ex.args[0]
+        #     print(f"{RED}เกิดข้อผิดพลาดในการซิงค์ข้อมูล: {sqlstate} - {ex}{RESET}")
+        #     sql_conn.rollback()
+        #     raise
+        # except Exception as e:
+        #     print(f"{RED}เกิดข้อผิดพลาดที่ไม่คาดคิดในการซิงค์ข้อมูล: {e}{RESET}")
+        #     if sql_conn:
+        #         sql_conn.rollback()
+        #     raise
 
         # --- สิ้นสุดการซิงค์ข้อมูล ---
 
